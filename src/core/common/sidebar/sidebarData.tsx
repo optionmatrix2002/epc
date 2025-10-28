@@ -14,11 +14,6 @@ export const SidebarData = [
     separateRoute: false,
     submenuItems: [
       {
-
-
-
-
-
         label: "Dashboard",
         link: routes.dashboard,
         submenu: false,

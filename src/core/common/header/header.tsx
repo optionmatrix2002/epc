@@ -512,10 +512,10 @@ const Header = () => {
                   />
                 </div>
                 {/* Item*/}
-                <Link href={all_routes.transactions} className="dropdown-item">
+                {/* <Link href={all_routes.transactions} className="dropdown-item">
                   <i className="ti ti-transition-right me-1 align-middle" />
                   <span className="align-middle">Transactions</span>
-                </Link>
+                </Link> */}
                 {/* Item*/}
                 <div className="pt-2 mt-2 border-top">
                   <button

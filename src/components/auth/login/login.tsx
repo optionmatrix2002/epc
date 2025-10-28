@@ -155,32 +155,44 @@ const LoginComponent = () => {
                                   password,
                                 });
                                 if (signInError) throw signInError;
-                                // Persist user_type (localStorage) so Sidebar can filter menus.
-                                try {
-                                  // data may contain user at data.user or data?.user
-                                  const authUser = (data as any)?.user ?? (data as any)?.user ?? null;
-                                  const userId = authUser?.id ?? null;
-                                  // try read from user_metadata first
-                                  let detectedUserType = authUser?.user_metadata?.user_type ?? authUser?.user_metadata?.userType ?? null;
 
-                                  // if not present, try to fetch profile row
+                                // Persist user_type AND name (localStorage) so Sidebar can filter menus/display name.
+                                try {
+                                  const authUser = (data as any)?.user ?? null; // Simplified user access
+                                  const userId = authUser?.id ?? null;
+                                  let detectedUserType = authUser?.user_metadata?.user_type ?? null;
+                                  let detectedUserName = authUser?.user_metadata?.name ?? null; // <-- Get name
+
+                                  // If user_type not in metadata, fetch from profiles
                                   if (!detectedUserType && userId) {
                                     try {
                                       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', userId).maybeSingle();
                                       if (profile) {
+                                        console.log('fetched profile for user_type', profile);
                                         if (profile.user_type) detectedUserType = profile.user_type;
+                                        // Storing profile object might be useful later
                                         try { localStorage.setItem('profile', JSON.stringify(profile)); } catch (_) { }
                                       }
-                                    } catch (pfErr) {
-                                      // ignore
-                                    }
+                                    } catch (pfErr) { /* ignore profile fetch error */ }
                                   }
 
+                                  // Store user_type if found
                                   if (detectedUserType) {
                                     try { localStorage.setItem('user_type', detectedUserType); } catch (_) { }
+                                  } else {
+                                    // Handle case where user_type is still null (maybe show error or default?)
+                                    console.warn("Could not determine user_type after login.");
+                                    // Optional: localStorage.setItem('user_type', 'default'); // Or remove if necessary
                                   }
+
+                                  // --- Store user_name if found ---
+                                  if (detectedUserName) {
+                                    try { localStorage.setItem('user_name', detectedUserName); } catch (_) { } // <-- Store name
+                                  }
+                                  // --- End Store user_name ---
+
                                 } catch (persistErr) {
-                                  console.debug('[login] failed to persist user_type', persistErr);
+                                  console.debug('[login] failed to persist user data', persistErr);
                                 }
 
                                 // success - redirect to dashboard
