@@ -83,7 +83,7 @@ export async function POST(req: Request) {
             email,
             password: tempPassword,
             user_metadata: { name, role, user_type: userType },
-            email_confirm: true,
+            email_confirm: false,
         });
 
         if (createRes?.error) {
