@@ -99,7 +99,7 @@ export const AdminSidebarData = [
             },
             {
                 label: "Procedures",
-                link: routes.procedures, // Reuse existing route
+                link: "#",
                 submenu: false,
                 icon: "report-medical", // Changed icon
                 base: "procedures",
@@ -131,7 +131,7 @@ export const AdminSidebarData = [
             },
             {
                 label: "Nursing", // Need a specific route, maybe link to Nurses?
-                link: routes.nurses,
+                link: "#",
                 submenu: false,
                 icon: "home-exclamation", // Example icon
                 base: "nurses",
@@ -155,7 +155,7 @@ export const AdminSidebarData = [
             },
             {
                 label: "Billing", // Link to Invoices or Payments?
-                link: routes.invoices, // Example link to invoices
+                link: "#",
                 submenu: false,
                 icon: "coin", // Example icon
                 base: "billing",
@@ -163,7 +163,7 @@ export const AdminSidebarData = [
             },
             {
                 label: "Documents", // Need a specific route
-                link: "/admin/documents", // Placeholder link
+                link: "#",
                 submenu: false,
                 icon: "file-stack", // Example icon
                 base: "documents",
@@ -200,7 +200,7 @@ export const AdminSidebarData = [
             },
             {
                 label: "Manage Departments",
-                link: routes.hrmDepartments, // Reuse existing route
+                link: "#",
                 submenu: false,
                 icon: "building-community", // Changed icon
                 base: "departments",
@@ -208,7 +208,7 @@ export const AdminSidebarData = [
             },
             {
                 label: "Manage Specialties", // Need a specific route
-                link: "/admin/setup/specialties", // Placeholder link
+                link: "#",
                 submenu: false,
                 icon: "star", // Example icon
                 base: "specialties",
@@ -216,7 +216,7 @@ export const AdminSidebarData = [
             },
             {
                 label: "Coding Master", // Need a specific route
-                link: "/admin/setup/coding-master", // Placeholder link
+                link: "#",
                 submenu: false,
                 icon: "code", // Example icon
                 base: "coding-master",
@@ -224,7 +224,7 @@ export const AdminSidebarData = [
             },
             {
                 label: "Manage Resources", // Need a specific route
-                link: "/admin/setup/resources", // Placeholder link
+                link: "#",
                 submenu: false,
                 icon: "box", // Example icon
                 base: "resources",
@@ -237,15 +237,15 @@ export const AdminSidebarData = [
                 icon: "calendar-time", // Example icon
                 base: "availability",
                 submenuItems: [
-                    { label: "Resources", link: "/admin/setup/availability/resources" }, // Placeholder links
-                    { label: "Providers", link: "/admin/setup/availability/providers" },
-                    { label: "Nurses", link: "/admin/setup/availability/nurses" },
-                    { label: "Technicians", link: "/admin/setup/availability/technicians" },
-                    { label: "Working Hours", link: routes.workinghourssettings },
-                    { label: "Holidays", link: routes.holidays },
-                    { label: "Vacations", link: "/admin/setup/availability/vacations" }, // Placeholder link
-                    { label: "Commitments", link: "/admin/setup/availability/commitments" }, // Placeholder link
-                    { label: "Exceptions", link: "/admin/setup/availability/exceptions" }, // Placeholder link
+                    { label: "Resources", link: "#", }, // Placeholder links
+                    { label: "Providers", link: "#", },
+                    { label: "Nurses", link: "#", },
+                    { label: "Technicians", link: "#", },
+                    { label: "Working Hours", link: "#", },
+                    { label: "Holidays", link: "#", },
+                    { label: "Vacations", link: "#", }, // Placeholder link
+                    { label: "Commitments", link: "#", }, // Placeholder link
+                    { label: "Exceptions", link: "#", }, // Placeholder link
                 ],
             },
         ],
@@ -258,7 +258,7 @@ export const AdminSidebarData = [
         submenuItems: [
             {
                 label: "Shift Master", // Need a specific route
-                link: "/admin/master-data/shifts", // Placeholder link
+                link: "#",
                 submenu: false,
                 icon: "clock-hour-4", // Example icon
                 base: "shifts",

@@ -32,7 +32,7 @@ export const ProviderSidebarData = [
             },
             {
                 label: "Availability",
-                link: "/provider/availability", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "calendar-time",
                 base: "availability",
@@ -40,7 +40,7 @@ export const ProviderSidebarData = [
             },
             {
                 label: "Profile",
-                link: routes.profile, // Or profilesettings
+                link: "#",
                 submenu: false,
                 icon: "user-circle",
                 base: "profile",
@@ -48,7 +48,7 @@ export const ProviderSidebarData = [
             },
             {
                 label: "Consultations",
-                link: "/provider/consultations", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "stethoscope",
                 base: "consultations",
@@ -56,7 +56,7 @@ export const ProviderSidebarData = [
             },
             {
                 label: "Procedures",
-                link: routes.procedures, // Existing route, filtered for provider
+                link: "#", // Existing route, filtered for provider
                 submenu: false,
                 icon: "report-medical",
                 base: "procedures",
@@ -64,7 +64,7 @@ export const ProviderSidebarData = [
             },
             {
                 label: "Patients", // Link to list or specific dashboard view
-                link: routes.patients, // Existing route, maybe filtered view
+                link: "#", // Existing route, maybe filtered view
                 submenu: false,
                 icon: "user-heart",
                 base: "patients",
@@ -72,7 +72,7 @@ export const ProviderSidebarData = [
             },
             {
                 label: "Billing",
-                link: routes.invoices, // Link to provider-related invoices
+                link: "#", // Link to provider-related invoices
                 submenu: false,
                 icon: "coin",
                 base: "billing",
@@ -80,7 +80,7 @@ export const ProviderSidebarData = [
             },
             {
                 label: "Documents",
-                link: "/provider/documents", // Placeholder
+                link: "#", // Placeholder
                 submenu: false,
                 icon: "file-stack",
                 base: "documents",

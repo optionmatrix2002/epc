@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react'; // Import useMemo
 import Link from 'next/link';
 import Datatable from '@/core/common/dataTable';
 import ImageWithBasePath from '@/core/imageWithBasePath';
@@ -32,6 +32,10 @@ const PatientsComponent = () => {
   const [resetConfirm, setResetConfirm] = useState("");
   const [resetShowPassword, setResetShowPassword] = useState(false);
   const [resetShowConfirm, setResetShowConfirm] = useState(false);
+
+  // New states for submit button loading and filter
+  const [isAddingPatient, setIsAddingPatient] = useState(false);
+  const [searchText, setSearchText] = useState<string>("");
 
   // Toast helpers
   const ensureToastContainer = () => {
@@ -260,7 +264,19 @@ const PatientsComponent = () => {
     }
   ];
 
-  const [searchText, setSearchText] = useState<string>("");
+  // Derived state for form validation
+  const isAddFormValid = useMemo(() => {
+    return !!(name && email && dob && addStateId && addCityId && addAddress && addZip);
+  }, [name, email, dob, addStateId, addCityId, addAddress, addZip]);
+
+  const isEditFormValid = useMemo(() => {
+    return !!(editingPatient && editName && editEmail && editDob && editStateId && editCityId && editAddress && editZip);
+  }, [editingPatient, editName, editEmail, editDob, editStateId, editCityId, editAddress, editZip]);
+
+  const isResetFormValid = useMemo(() => {
+    return !!(resetPassword && resetPassword.length >= 6 && resetPassword === resetConfirm);
+  }, [resetPassword, resetConfirm]);
+
 
   const handleResetOpen = (record: any) => {
     const userId = record?.id ?? record?.user?.id ?? record?.user?.user?.id ?? null;
@@ -294,8 +310,13 @@ const PatientsComponent = () => {
     e.preventDefault();
     const userId = resetPatientId;
     if (!userId) return showToast('Patient id missing', 'danger');
-    if (!resetPassword || resetPassword.length < 6) return showToast('Password must be at least 6 characters', 'danger');
-    if (resetPassword !== resetConfirm) return showToast('Passwords do not match', 'danger');
+
+    if (!isResetFormValid) {
+      if (!resetPassword || resetPassword.length < 6) return showToast('Password must be at least 6 characters', 'danger');
+      if (resetPassword !== resetConfirm) return showToast('Passwords do not match', 'danger');
+      return;
+    }
+
     try {
       setLoadingIds(prev => ({ ...prev, [userId]: true }));
       const headers: any = { 'Content-Type': 'application/json' };
@@ -321,6 +342,13 @@ const PatientsComponent = () => {
 
   const handleAddPatient = async (e: any) => {
     e.preventDefault();
+
+    if (!isAddFormValid) {
+      showToast('Please fill out all required fields.', 'danger');
+      return;
+    }
+
+    setIsAddingPatient(true);
     try {
       const headers: any = { 'Content-Type': 'application/json' };
       const adminSecret = (typeof process !== 'undefined' && (process as any).env?.NEXT_PUBLIC_ADMIN_API_SECRET)
@@ -346,6 +374,8 @@ const PatientsComponent = () => {
       showToast('Patient added successfully', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to add patient', 'danger');
+    } finally {
+      setIsAddingPatient(false);
     }
   };
 
@@ -467,6 +497,12 @@ const PatientsComponent = () => {
 
   const handleEditSubmit = async (e: any) => {
     e.preventDefault();
+
+    if (!isEditFormValid) {
+      showToast('Please fill out all required fields.', 'danger');
+      return;
+    }
+
     if (!editingPatient?.id) return alert('No editing patient');
     const userId = editingPatient.id;
     try {
@@ -497,6 +533,10 @@ const PatientsComponent = () => {
   const handleSearch = (value: string) => {
     setSearchText(value);
   };
+
+  // Determine loading state for edit/reset buttons
+  const isEditing = !!(editingPatient && loadingIds[editingPatient.id]);
+  const isResetting = !!(resetPatientId && loadingIds[resetPatientId]);
 
   return (
     <>
@@ -536,18 +576,7 @@ const PatientsComponent = () => {
               </div>
 
               {/* <div className="bg-white border shadow-sm rounded px-1 pb-0 text-center d-flex align-items-center justify-content-center">
-                <Link
-                  href={all_routes.patients}
-                  className="bg-light rounded p-1 d-flex align-items-center justify-content-center"
-                >
-                  <i className="ti ti-list fs-14 text-dark" />
-                </Link>
-                <Link
-                  href={all_routes.patientsGrid}
-                  className="bg-white rounded p-1 d-flex align-items-center justify-content-center"
-                >
-                  <i className="ti ti-layout-grid fs-14 text-body" />
-                </Link>
+                ... (grid/list view toggle)
               </div> */}
               <a href="#" className="btn btn-primary ms-2 fs-13 btn-md" onClick={(e) => { e.preventDefault(); const modalEl = document.getElementById('add_patient'); try { const bs = (window as any).bootstrap; if (modalEl && bs && bs.Modal) { bs.Modal.getOrCreateInstance(modalEl).show(); return; } if (modalEl) { modalEl.classList.add('show'); (modalEl as any).style.display = 'block'; document.body.classList.add('modal-open'); if (!document.querySelector('.modal-backdrop')) { const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop fade show'; document.body.appendChild(backdrop); } } } catch (err) { console.debug('[patients] open add_patient', err); } }}>
                 <i className="ti ti-plus me-1" />
@@ -587,7 +616,7 @@ const PatientsComponent = () => {
                 <form onSubmit={handleResetSubmit}>
                   <div className="modal-body">
                     <div className="mb-3">
-                      <label className="form-label">New Password</label>
+                      <label className="form-label">New Password <span className="text-danger">*</span></label>
                       <div className="input-group">
                         <input type={resetShowPassword ? 'text' : 'password'} className="form-control" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
                         <button type="button" className="btn btn-light border" onClick={() => setResetShowPassword(s => !s)} aria-label="Toggle password visibility">
@@ -596,7 +625,7 @@ const PatientsComponent = () => {
                       </div>
                     </div>
                     <div className="mb-3">
-                      <label className="form-label">Confirm Password</label>
+                      <label className="form-label">Confirm Password <span className="text-danger">*</span></label>
                       <div className="input-group">
                         <input type={resetShowConfirm ? 'text' : 'password'} className="form-control" value={resetConfirm} onChange={e => setResetConfirm(e.target.value)} />
                         <button type="button" className="btn btn-light border" onClick={() => setResetShowConfirm(s => !s)} aria-label="Toggle confirm password visibility">
@@ -607,7 +636,9 @@ const PatientsComponent = () => {
                   </div>
                   <div className="modal-footer d-flex align-items-center gap-1">
                     <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('reset_password'); } catch (_) { } }}>Cancel</button>
-                    <button type="submit" className="btn btn-primary">Set Password</button>
+                    <button type="submit" className="btn btn-primary" disabled={!isResetFormValid || isResetting}>
+                      {isResetting ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Set Password'}
+                    </button>
                   </div>
                 </form>
               </div>
@@ -623,34 +654,36 @@ const PatientsComponent = () => {
                 </div>
                 <form onSubmit={handleEditSubmit}>
                   <div className="modal-body">
-                    <div className="mb-3"><label className="form-label">Name</label><input type="text" className="form-control" value={editName} onChange={e => setEditName(e.target.value)} /></div>
-                    <div className="mb-3"><label className="form-label">Email</label><input type="email" className="form-control" value={editEmail} onChange={e => setEditEmail(e.target.value)} /></div>
-                    <div className="mb-3"><label className="form-label">Date of Birth</label><input type="date" className="form-control" value={editDob} onChange={e => setEditDob(e.target.value)} /></div>
+                    <div className="mb-3"><label className="form-label">Name <span className="text-danger">*</span></label><input type="text" className="form-control" value={editName} onChange={e => setEditName(e.target.value)} /></div>
+                    <div className="mb-3"><label className="form-label">Email <span className="text-danger">*</span></label><input type="email" className="form-control" value={editEmail} onChange={e => setEditEmail(e.target.value)} /></div>
+                    <div className="mb-3"><label className="form-label">Date of Birth <span className="text-danger">*</span></label><input type="date" className="form-control" value={editDob} onChange={e => setEditDob(e.target.value)} /></div>
 
                     <div className="row">
                       <div className="col-6 mb-3">
-                        <label className="form-label">State</label>
-                        <select className="form-control" value={editStateId ?? ''} onChange={e => { setEditStateId(e.target.value ? Number(e.target.value) : null); setEditCityId(null); }}>
+                        <label className="form-label">State <span className="text-danger">*</span></label>
+                        <select className="form-select" value={editStateId ?? ''} onChange={e => { setEditStateId(e.target.value ? Number(e.target.value) : null); setEditCityId(null); }}>
                           <option value="">-- Select State --</option>
                           {states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                       </div>
                       <div className="col-6 mb-3">
-                        <label className="form-label">City</label>
-                        <select className="form-control" value={editCityId ?? ''} onChange={e => setEditCityId(e.target.value ? Number(e.target.value) : null)}>
+                        <label className="form-label">City <span className="text-danger">*</span></label>
+                        <select className="form-select" value={editCityId ?? ''} onChange={e => setEditCityId(e.target.value ? Number(e.target.value) : null)}>
                           <option value="">-- Select City --</option>
                           {(cities || []).filter(c => !editStateId || String(c.state_id) === String(editStateId)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
                     </div>
                     <div className="row">
-                      <div className="col-6 mb-3"><label className="form-label">Address</label><textarea className="form-control" value={editAddress} onChange={e => setEditAddress(e.target.value)} /></div>
-                      <div className="col-6 mb-3"><label className="form-label">Zip</label><input className="form-control" value={editZip} onChange={e => setEditZip(e.target.value)} /></div>
+                      <div className="col-6 mb-3"><label className="form-label">Address <span className="text-danger">*</span></label><textarea className="form-control" value={editAddress} onChange={e => setEditAddress(e.target.value)} /></div>
+                      <div className="col-6 mb-3"><label className="form-label">Zip <span className="text-danger">*</span></label><input className="form-control" value={editZip} onChange={e => setEditZip(e.target.value)} /></div>
                     </div>
                   </div>
                   <div className="modal-footer d-flex align-items-center gap-1">
                     <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('edit_patient'); } catch (_) { } }}>Cancel</button>
-                    <button type="submit" className="btn btn-primary">Update Patient</button>
+                    <button type="submit" className="btn btn-primary" disabled={!isEditFormValid || isEditing}>
+                      {isEditing ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Update Patient'}
+                    </button>
                   </div>
                 </form>
               </div>
@@ -666,34 +699,36 @@ const PatientsComponent = () => {
                 </div>
                 <form onSubmit={handleAddPatient}>
                   <div className="modal-body">
-                    <div className="mb-3"><label className="form-label">Name</label><input type="text" className="form-control" value={name} onChange={e => setName(e.target.value)} /></div>
-                    <div className="mb-3"><label className="form-label">Email</label><input type="email" className="form-control" value={email} onChange={e => setEmail(e.target.value)} /></div>
-                    <div className="mb-3"><label className="form-label">Date of Birth</label><input type="date" className="form-control" value={dob} onChange={e => setDob(e.target.value)} /></div>
+                    <div className="mb-3"><label className="form-label">Name <span className="text-danger">*</span></label><input type="text" className="form-control" value={name} onChange={e => setName(e.target.value)} /></div>
+                    <div className="mb-3"><label className="form-label">Email <span className="text-danger">*</span></label><input type="email" className="form-control" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                    <div className="mb-3"><label className="form-label">Date of Birth <span className="text-danger">*</span></label><input type="date" className="form-control" value={dob} onChange={e => setDob(e.target.value)} /></div>
 
                     <div className="row">
                       <div className="col-6 mb-3">
-                        <label className="form-label">State</label>
-                        <select className="form-control" value={addStateId ?? ''} onChange={e => { setAddStateId(e.target.value ? Number(e.target.value) : null); setAddCityId(null); }}>
+                        <label className="form-label">State <span className="text-danger">*</span></label>
+                        <select className="form-select" value={addStateId ?? ''} onChange={e => { setAddStateId(e.target.value ? Number(e.target.value) : null); setAddCityId(null); }}>
                           <option value="">-- Select State --</option>
                           {states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                       </div>
                       <div className="col-6 mb-3">
-                        <label className="form-label">City</label>
-                        <select className="form-control" value={addCityId ?? ''} onChange={e => setAddCityId(e.target.value ? Number(e.target.value) : null)}>
+                        <label className="form-label">City <span className="text-danger">*</span></label>
+                        <select className="form-select" value={addCityId ?? ''} onChange={e => setAddCityId(e.target.value ? Number(e.target.value) : null)}>
                           <option value="">-- Select City --</option>
                           {(cities || []).filter(c => !addStateId || String(c.state_id) === String(addStateId)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
                     </div>
                     <div className="row">
-                      <div className="col-6 mb-3"><label className="form-label">Address</label><textarea className="form-control" value={addAddress} onChange={e => setAddAddress(e.target.value)} /></div>
-                      <div className="col-6 mb-3"><label className="form-label">Zip</label><input className="form-control" value={addZip} onChange={e => setAddZip(e.target.value)} /></div>
+                      <div className="col-6 mb-3"><label className="form-label">Address <span className="text-danger">*</span></label><textarea className="form-control" value={addAddress} onChange={e => setAddAddress(e.target.value)} /></div>
+                      <div className="col-6 mb-3"><label className="form-label">Zip <span className="text-danger">*</span></label><input className="form-control" value={addZip} onChange={e => setAddZip(e.target.value)} /></div>
                     </div>
                   </div>
                   <div className="modal-footer d-flex align-items-center gap-1">
                     <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('add_patient'); } catch (_) { } }}>Cancel</button>
-                    <button type="submit" className="btn btn-primary">Add Patient</button>
+                    <button type="submit" className="btn btn-primary" disabled={!isAddFormValid || isAddingPatient}>
+                      {isAddingPatient ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Add Patient'}
+                    </button>
                   </div>
                 </form>
               </div>

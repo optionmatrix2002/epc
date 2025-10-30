@@ -35,7 +35,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Profile", // Includes MRN info
-                link: routes.profile, // Or profilesettings
+                link: "#",
                 submenu: false,
                 icon: "user-circle",
                 base: "profile",
@@ -43,7 +43,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Consultations",
-                link: "/patient/consultations", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "stethoscope",
                 base: "consultations",
@@ -51,7 +51,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Procedures",
-                link: routes.procedures, // Existing route
+                link: "#",
                 submenu: false,
                 icon: "report-medical",
                 base: "procedures",
@@ -59,7 +59,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Diagnostics",
-                link: "/patient/diagnostics", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "clipboard-heart",
                 base: "diagnostics",
@@ -67,7 +67,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Imaging",
-                link: "/patient/imaging", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "photo-scan",
                 base: "imaging",
@@ -75,7 +75,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Clinical Services",
-                link: "/patient/clinical-services", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "building-hospital",
                 base: "clinical-services",
@@ -83,7 +83,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Nursing",
-                link: "/patient/nursing", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "home-exclamation",
                 base: "nursing",
@@ -104,7 +104,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Billing",
-                link: routes.invoices, // Link to patient invoices list
+                link: "#", // Link to patient invoices list
                 submenu: false,
                 icon: "coin",
                 base: "billing",
@@ -112,7 +112,7 @@ export const PatientSidebarData = [
             },
             {
                 label: "Documents",
-                link: "/patient/documents", // Placeholder
+                link: "#", // Placeholder
                 submenu: false,
                 icon: "file-stack",
                 base: "documents",

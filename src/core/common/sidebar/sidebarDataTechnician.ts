@@ -20,7 +20,7 @@ export const TechnicianSidebarData = [
             },
             {
                 label: "Allocation",
-                link: "/technician/allocation", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "directions", // Example icon
                 base: "allocation",
@@ -28,7 +28,7 @@ export const TechnicianSidebarData = [
             },
             {
                 label: "Availability",
-                link: "/technician/availability", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "calendar-time",
                 base: "availability",
@@ -36,7 +36,7 @@ export const TechnicianSidebarData = [
             },
             {
                 label: "Profile",
-                link: routes.profile, // Or profilesettings
+                link: "#", // Or profilesettings
                 submenu: false,
                 icon: "user-circle",
                 base: "profile",
@@ -44,7 +44,7 @@ export const TechnicianSidebarData = [
             },
             {
                 label: "Tasks", // Added Tasks section (could replace billing if not needed)
-                link: "/technician/tasks", // Placeholder for task list
+                link: "#", // Placeholder for task list
                 submenu: false,
                 icon: "clipboard-list",
                 base: "tasks",
@@ -61,7 +61,7 @@ export const TechnicianSidebarData = [
             // },
             {
                 label: "Documents",
-                link: "/technician/documents", // Placeholder
+                link: "#", // Placeholder
                 submenu: false,
                 icon: "file-stack",
                 base: "documents",

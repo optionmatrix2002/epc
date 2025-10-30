@@ -1,3 +1,5 @@
+
+
 export const all_routes = {
   //Auth routes
   login: "/login",
@@ -313,4 +315,5 @@ export const all_routes = {
   formPickers: "/form-pickers",
   formWizard: "/form-wizard",
   formMask: "/form-mask",
+
 };

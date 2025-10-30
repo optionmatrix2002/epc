@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react"; // Added useMemo
 import Datatable from "@/core/common/dataTable";
 import { all_routes } from "@/routes/all_routes";
 import Link from "next/link";
@@ -36,6 +36,10 @@ const NursesComponent = () => {
     const [resetConfirm, setResetConfirm] = useState("");
     const [resetShowPassword, setResetShowPassword] = useState(false);
     const [resetShowConfirm, setResetShowConfirm] = useState(false);
+
+    // New states for submit button loading and filter
+    const [isAddingNurse, setIsAddingNurse] = useState(false);
+    const [searchText, setSearchText] = useState("");
 
     const ensureToastContainer = () => {
         let container = document.getElementById('global_toast_container');
@@ -258,12 +262,31 @@ const NursesComponent = () => {
         } catch (e) { console.debug('[nurses] handleResetOpen error', e); }
     };
 
+    // Derived state for form validation
+    const isAddFormValid = useMemo(() => {
+        return !!(name && email && role && addStateId && addCityId && addAddress && addZip);
+    }, [name, email, role, addStateId, addCityId, addAddress, addZip]);
+
+    const isEditFormValid = useMemo(() => {
+        return !!(editingUser && editName && editEmail && editRole && editStateId && editCityId && editAddress && editZip);
+    }, [editingUser, editName, editEmail, editRole, editStateId, editCityId, editAddress, editZip]);
+
+    const isResetFormValid = useMemo(() => {
+        return !!(resetPassword && resetPassword.length >= 6 && resetPassword === resetConfirm);
+    }, [resetPassword, resetConfirm]);
+
+
     const handleResetSubmit = async (e: any) => {
         e.preventDefault();
         const userId = resetUserId;
         if (!userId) return showToast('Nurse id missing', 'danger');
-        if (!resetPassword || resetPassword.length < 6) return showToast('Password must be at least 6 characters', 'danger');
-        if (resetPassword !== resetConfirm) return showToast('Passwords do not match', 'danger');
+
+        if (!isResetFormValid) {
+            if (!resetPassword || resetPassword.length < 6) return showToast('Password must be at least 6 characters', 'danger');
+            if (resetPassword !== resetConfirm) return showToast('Passwords do not match', 'danger');
+            return;
+        }
+
         try {
             setLoadingIds(prev => ({ ...prev, [userId]: true }));
             const headers: any = { 'Content-Type': 'application/json' };
@@ -289,6 +312,14 @@ const NursesComponent = () => {
 
     const handleAddNurse = async (e: any) => {
         e.preventDefault();
+
+        // Mandatory field check
+        if (!isAddFormValid) {
+            showToast('Please fill out all required fields.', 'danger');
+            return;
+        }
+
+        setIsAddingNurse(true); // Show loader
         try {
             const headers: any = { 'Content-Type': 'application/json' };
             const adminSecret = (typeof process !== 'undefined' && (process as any).env?.NEXT_PUBLIC_ADMIN_API_SECRET)
@@ -316,6 +347,8 @@ const NursesComponent = () => {
             showToast('Nurse created. A confirmation email (magic link) was requested.', 'success');
         } catch (err: any) {
             showToast(err.message || 'Failed to add nurse', 'danger');
+        } finally {
+            setIsAddingNurse(false); // Hide loader
         }
     };
 
@@ -445,6 +478,13 @@ const NursesComponent = () => {
 
     const handleEditSubmit = async (e: any) => {
         e.preventDefault();
+
+        // Mandatory field check
+        if (!isEditFormValid) {
+            showToast('Please fill out all required fields.', 'danger');
+            return;
+        }
+
         if (!editingUser?.id) return alert('No editing nurse');
         const userId = editingUser.id;
         try {
@@ -470,6 +510,11 @@ const NursesComponent = () => {
         }
     };
 
+    // Determine loading state for edit button
+    const isEditing = !!(editingUser && loadingIds[editingUser.id]);
+    // Determine loading state for reset password button
+    const isResetting = !!(resetUserId && loadingIds[resetUserId]);
+
     return (
         <>
             <div className="page-wrapper">
@@ -478,6 +523,18 @@ const NursesComponent = () => {
                         <div className="flex-grow-1"><h4 className="fw-bold mb-0">Nurses <span className="badge badge-soft-primary fw-medium border py-1 px-2 border-primary fs-13 ms-1">
                             Total Nurses : {data.length}
                         </span></h4></div>
+
+                        {/* Filter Input */}
+                        <div className="me-2" style={{ minWidth: '220px' }}>
+                            <input
+                                type="search"
+                                className="form-control"
+                                placeholder="Filter by name, email..."
+                                value={searchText}
+                                onChange={e => setSearchText(e.target.value)}
+                            />
+                        </div>
+
                         <div className="text-end d-flex">
                             <div className="dropdown me-1">
                                 <Link
@@ -503,18 +560,7 @@ const NursesComponent = () => {
                             </div>
 
                             {/* <div className="bg-white border shadow-sm rounded px-1 pb-0 text-center d-flex align-items-center justify-content-center">
-                                <Link
-                                    href={all_routes.patients}
-                                    className="bg-light rounded p-1 d-flex align-items-center justify-content-center"
-                                >
-                                    <i className="ti ti-list fs-14 text-dark" />
-                                </Link>
-                                <Link
-                                    href={all_routes.patientsGrid}
-                                    className="bg-white rounded p-1 d-flex align-items-center justify-content-center"
-                                >
-                                    <i className="ti ti-layout-grid fs-14 text-body" />
-                                </Link>
+                                ... (grid/list view toggle)
                             </div> */}
                             <Link href="#" className="btn btn-primary ms-2 fs-13 btn-md" data-bs-toggle="modal" data-bs-target="#add_user">
                                 <i className="ti ti-plus me-1" /> New Nurse
@@ -522,7 +568,8 @@ const NursesComponent = () => {
                         </div>
                     </div>
                     <div className="table-responsive">
-                        <Datatable columns={columns} dataSource={data} Selection={false} searchText={""} />
+                        {/* Pass searchText to Datatable */}
+                        <Datatable columns={columns} dataSource={data} Selection={false} searchText={searchText} />
                     </div>
                 </div>
             </div>
@@ -537,7 +584,7 @@ const NursesComponent = () => {
                         <form onSubmit={handleResetSubmit}>
                             <div className="modal-body">
                                 <div className="mb-3">
-                                    <label className="form-label">New Password</label>
+                                    <label className="form-label">New Password <span className="text-danger">*</span></label>
                                     <div className="input-group">
                                         <input type={resetShowPassword ? 'text' : 'password'} className="form-control" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
                                         <button type="button" className="btn btn-light border" onClick={() => setResetShowPassword(s => !s)} aria-label="Toggle password visibility">
@@ -546,7 +593,7 @@ const NursesComponent = () => {
                                     </div>
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label">Confirm Password</label>
+                                    <label className="form-label">Confirm Password <span className="text-danger">*</span></label>
                                     <div className="input-group">
                                         <input type={resetShowConfirm ? 'text' : 'password'} className="form-control" value={resetConfirm} onChange={e => setResetConfirm(e.target.value)} />
                                         <button type="button" className="btn btn-light border" onClick={() => setResetShowConfirm(s => !s)} aria-label="Toggle confirm password visibility">
@@ -557,7 +604,10 @@ const NursesComponent = () => {
                             </div>
                             <div className="modal-footer d-flex align-items-center gap-1">
                                 <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('reset_password'); } catch (_) { } }}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Set Password</button>
+                                {/* Submit button with loader and disabled state */}
+                                <button type="submit" className="btn btn-primary" disabled={!isResetFormValid || isResetting}>
+                                    {isResetting ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Set Password'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -574,38 +624,47 @@ const NursesComponent = () => {
                         </div>
                         <form onSubmit={handleEditSubmit}>
                             <div className="modal-body">
-                                <div className="mb-3"><label className="form-label">Name</label><input className="form-control" value={editName} onChange={e => setEditName(e.target.value)} /></div>
-                                <div className="mb-3"><label className="form-label">Email</label><input className="form-control" value={editEmail} onChange={e => setEditEmail(e.target.value)} /></div>
-                                <div className="mb-3"><label className="form-label">Role</label>
-                                    <select className="form-control" value={editRole} onChange={e => setEditRole(e.target.value)}>
+                                <div className="row">
+                                    <div className="col-6 mb-3"><label className="form-label">Name <span className="text-danger">*</span></label><input className="form-control" value={editName} onChange={e => setEditName(e.target.value)} /></div>
+                                    <div className="col-6 mb-3"><label className="form-label">Email <span className="text-danger">*</span></label><input className="form-control" value={editEmail} onChange={e => setEditEmail(e.target.value)} /></div>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Role <span className="text-danger">*</span></label>
+                                    {/* Use form-select for dropdown arrow */}
+                                    <select className="form-select" value={editRole} onChange={e => setEditRole(e.target.value)}>
                                         <option value="">Select role</option>
                                         {roleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                     </select>
                                 </div>
                                 <div className="row">
                                     <div className="col-6 mb-3">
-                                        <label className="form-label">State</label>
-                                        <select className="form-control" value={editStateId ?? ''} onChange={e => { setEditStateId(e.target.value ? Number(e.target.value) : null); setEditCityId(null); }}>
+                                        <label className="form-label">State <span className="text-danger">*</span></label>
+                                        {/* Use form-select for dropdown arrow */}
+                                        <select className="form-select" value={editStateId ?? ''} onChange={e => { setEditStateId(e.target.value ? Number(e.target.value) : null); setEditCityId(null); }}>
                                             <option value="">-- Select State --</option>
                                             {states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="col-6 mb-3">
-                                        <label className="form-label">City</label>
-                                        <select className="form-control" value={editCityId ?? ''} onChange={e => setEditCityId(e.target.value ? Number(e.target.value) : null)}>
+                                        <label className="form-label">City <span className="text-danger">*</span></label>
+                                        {/* Use form-select for dropdown arrow */}
+                                        <select className="form-select" value={editCityId ?? ''} onChange={e => setEditCityId(e.target.value ? Number(e.target.value) : null)}>
                                             <option value="">-- Select City --</option>
                                             {(cities || []).filter(c => !editStateId || String(c.state_id) === String(editStateId)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
                                     </div>
                                 </div>
                                 <div className="row">
-                                    <div className="col-6 mb-3"><label className="form-label">Address</label><textarea className="form-control" value={editAddress} onChange={e => setEditAddress(e.target.value)} /></div>
-                                    <div className="col-6 mb-3"><label className="form-label">Zip</label><input className="form-control" value={editZip} onChange={e => setEditZip(e.target.value)} /></div>
+                                    <div className="col-6 mb-3"><label className="form-label">Address <span className="text-danger">*</span></label><textarea className="form-control" value={editAddress} onChange={e => setEditAddress(e.target.value)} /></div>
+                                    <div className="col-6 mb-3"><label className="form-label">Zip <span className="text-danger">*</span></label><input className="form-control" value={editZip} onChange={e => setEditZip(e.target.value)} /></div>
                                 </div>
                             </div>
                             <div className="modal-footer d-flex align-items-center gap-1">
                                 <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('edit_user'); } catch (_) { } }}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Save</button>
+                                {/* Submit button with loader and disabled state */}
+                                <button type="submit" className="btn btn-primary" disabled={!isEditFormValid || isEditing}>
+                                    {isEditing ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Save'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -621,40 +680,48 @@ const NursesComponent = () => {
                         </div>
                         <form onSubmit={handleAddNurse}>
                             <div className="modal-body">
-                                <div className="mb-3"><label className="form-label">Name</label><input className="form-control" value={name} onChange={e => setName(e.target.value)} /></div>
-                                <div className="mb-3"><label className="form-label">Email</label><input className="form-control" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                                <div className="row">
+                                    <div className="col-6 mb-3"><label className="form-label">Name <span className="text-danger">*</span></label><input className="form-control" value={name} onChange={e => setName(e.target.value)} /></div>
+                                    <div className="col-6 mb-3"><label className="form-label">Email <span className="text-danger">*</span></label><input className="form-control" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                                </div>
                                 <div className="mb-3">
-                                    <label className="form-label">Role</label>
-                                    <select className="form-control" value={role} onChange={e => setRole(e.target.value)}>
+                                    <label className="form-label">Role <span className="text-danger">*</span></label>
+                                    {/* Use form-select for dropdown arrow */}
+                                    <select className="form-select" value={role} onChange={e => setRole(e.target.value)}>
                                         <option value="">Select role</option>
                                         {roleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                     </select>
                                 </div>
                                 <div className="row">
                                     <div className="col-6 mb-3">
-                                        <label className="form-label">State</label>
-                                        <select className="form-control" value={addStateId ?? ''} onChange={e => { setAddStateId(e.target.value ? Number(e.target.value) : null); setAddCityId(null); }}>
+                                        <label className="form-label">State <span className="text-danger">*</span></label>
+                                        {/* Use form-select for dropdown arrow */}
+                                        <select className="form-select" value={addStateId ?? ''} onChange={e => { setAddStateId(e.target.value ? Number(e.target.value) : null); setAddCityId(null); }}>
                                             <option value="">-- Select State --</option>
                                             {states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="col-6 mb-3">
-                                        <label className="form-label">City</label>
-                                        <select className="form-control" value={addCityId ?? ''} onChange={e => setAddCityId(e.target.value ? Number(e.target.value) : null)}>
+                                        <label className="form-label">City <span className="text-danger">*</span></label>
+                                        {/* Use form-select for dropdown arrow */}
+                                        <select className="form-select" value={addCityId ?? ''} onChange={e => setAddCityId(e.target.value ? Number(e.target.value) : null)}>
                                             <option value="">-- Select City --</option>
                                             {(cities || []).filter(c => !addStateId || String(c.state_id) === String(addStateId)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
                                     </div>
                                 </div>
                                 <div className="row">
-                                    <div className="col-6 mb-3"><label className="form-label">Address</label><textarea className="form-control" value={addAddress} onChange={e => setAddAddress(e.target.value)} /></div>
-                                    <div className="col-6 mb-3"><label className="form-label">Zip</label><input className="form-control" value={addZip} onChange={e => setAddZip(e.target.value)} /></div>
+                                    <div className="col-6 mb-3"><label className="form-label">Address <span className="text-danger">*</span></label><textarea className="form-control" value={addAddress} onChange={e => setAddAddress(e.target.value)} /></div>
+                                    <div className="col-6 mb-3"><label className="form-label">Zip <span className="text-danger">*</span></label><input className="form-control" value={addZip} onChange={e => setAddZip(e.target.value)} /></div>
                                 </div>
 
                             </div>
                             <div className="modal-footer d-flex align-items-center gap-1">
                                 <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('add_user'); } catch (_) { } }}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Add New Nurse</button>
+                                {/* Submit button with loader and disabled state */}
+                                <button type="submit" className="btn btn-primary" disabled={!isAddFormValid || isAddingNurse}>
+                                    {isAddingNurse ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Add New Nurse'}
+                                </button>
                             </div>
                         </form>
                     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react"; // 1. Import useMemo
 import Datatable from "@/core/common/dataTable";
 import { all_routes } from "@/routes/all_routes";
 import Link from "next/link";
@@ -26,6 +26,10 @@ const UsersComponent = () => {
     const [resetConfirm, setResetConfirm] = useState("");
     const [resetShowPassword, setResetShowPassword] = useState(false);
     const [resetShowConfirm, setResetShowConfirm] = useState(false);
+
+    // New states for submit button loading and filter
+    const [isAddingUser, setIsAddingUser] = useState(false);
+    const [searchText, setSearchText] = useState("");
 
     // Lightweight toast helper (uses Bootstrap classes if available). Appends to body.
     const ensureToastContainer = () => {
@@ -153,22 +157,33 @@ const UsersComponent = () => {
     useEffect(() => { fetchUsers(); }, []);
     useEffect(() => { fetchRoleOptions('Admin'); }, []);
 
+    // 2. Create processedData to flatten properties for filtering
+    const processedData = useMemo(() => {
+        return data.map(record => {
+            const roleId = record?.admin?.role_id ?? record?.profile?.role_id ?? record?.user_metadata?.role_id ?? record?.role_id;
+            const roleName = (roleId && rolesMap[String(roleId)]) ? rolesMap[String(roleId)] : (record.profile?.user_type ?? record?.user_metadata?.role ?? 'User');
+
+            return {
+                ...record, // Keep the original record for render functions that need it
+                // Add flattened, searchable properties
+                name_flat: record.user_metadata?.name ?? record.email,
+                email_flat: record.email,
+                role_flat: roleName,
+            };
+        });
+    }, [data, rolesMap]);
+
+    // 3. Update columns to use the flat dataIndex
     const columns = [
-        { title: 'Name', dataIndex: 'user_metadata.name', render: (val: any, record: any) => record.user_metadata?.name ?? record.email },
-        { title: 'Email', dataIndex: 'email' },
-        {
-            title: 'Role', dataIndex: 'user_metadata.role', render: (val: any, record: any) => {
-                const roleId = record?.admin?.role_id ?? record?.profile?.role_id ?? record?.user_metadata?.role_id ?? record?.role_id;
-                if (roleId && rolesMap[String(roleId)]) return rolesMap[String(roleId)];
-                return record.profile?.user_type ?? val ?? 'User';
-            }
-        },
+        { title: 'Name', dataIndex: 'name_flat' },
+        { title: 'Email', dataIndex: 'email_flat' },
+        { title: 'Role', dataIndex: 'role_flat' },
         {
             title: 'Status', dataIndex: 'admin.is_active', render: (_: any, record: any) => {
+                // The render function still receives the full 'record' object from processedData
                 const isActive = record?.admin?.is_active ?? false;
                 const userId = record?.id ?? record?.user?.id ?? record?.user?.user?.id;
                 const isLoading = !!(userId && loadingIds[userId]);
-                // Make the badge clickable to toggle active/inactive
                 return (
                     <span
                         role="button"
@@ -216,6 +231,20 @@ const UsersComponent = () => {
         }
     ];
 
+    // Derived state for form validation
+    const isAddFormValid = useMemo(() => {
+        return !!(name && email && role);
+    }, [name, email, role]);
+
+    const isEditFormValid = useMemo(() => {
+        return !!(editingUser && editName && editEmail && editRole);
+    }, [editingUser, editName, editEmail, editRole]);
+
+    const isResetFormValid = useMemo(() => {
+        return !!(resetPassword && resetPassword.length >= 6 && resetPassword === resetConfirm);
+    }, [resetPassword, resetConfirm]);
+
+
     const handleResetOpen = (record: any) => {
         const userId = record?.id ?? record?.user?.id ?? record?.user?.user?.id ?? null;
         setResetUserId(userId);
@@ -248,8 +277,13 @@ const UsersComponent = () => {
         e.preventDefault();
         const userId = resetUserId;
         if (!userId) return showToast('User id missing', 'danger');
-        if (!resetPassword || resetPassword.length < 6) return showToast('Password must be at least 6 characters', 'danger');
-        if (resetPassword !== resetConfirm) return showToast('Passwords do not match', 'danger');
+
+        if (!isResetFormValid) {
+            if (!resetPassword || resetPassword.length < 6) return showToast('Password must be at least 6 characters', 'danger');
+            if (resetPassword !== resetConfirm) return showToast('Passwords do not match', 'danger');
+            return;
+        }
+
         try {
             setLoadingIds(prev => ({ ...prev, [userId]: true }));
             const headers: any = { 'Content-Type': 'application/json' };
@@ -275,6 +309,13 @@ const UsersComponent = () => {
 
     const handleAddUser = async (e: any) => {
         e.preventDefault();
+
+        if (!isAddFormValid) {
+            showToast('Please fill out all required fields.', 'danger');
+            return;
+        }
+
+        setIsAddingUser(true);
         try {
             const headers: any = { 'Content-Type': 'application/json' };
             // If you need to provide an admin secret from the client for local/dev,
@@ -308,6 +349,8 @@ const UsersComponent = () => {
             showToast('User created. A confirmation email (magic link) was requested.', 'success');
         } catch (err: any) {
             showToast(err.message || 'Failed to add user', 'danger');
+        } finally {
+            setIsAddingUser(false);
         }
     };
 
@@ -440,6 +483,12 @@ const UsersComponent = () => {
 
     const handleEditSubmit = async (e: any) => {
         e.preventDefault();
+
+        if (!isEditFormValid) {
+            showToast('Please fill out all required fields.', 'danger');
+            return;
+        }
+
         if (!editingUser?.id) return alert('No editing user');
         const userId = editingUser.id;
         try {
@@ -465,6 +514,9 @@ const UsersComponent = () => {
         }
     };
 
+    // Determine loading state for edit/reset buttons
+    const isEditing = !!(editingUser && loadingIds[editingUser.id]);
+    const isResetting = !!(resetUserId && loadingIds[resetUserId]);
 
 
     return (
@@ -472,7 +524,21 @@ const UsersComponent = () => {
             <div className="page-wrapper">
                 <div className="content">
                     <div className="d-flex align-items-sm-center flex-sm-row flex-column gap-2 mb-3 pb-3 border-bottom">
-                        <div className="flex-grow-1"><h4 className="fw-bold mb-0">Users</h4></div>
+                        <div className="flex-grow-1"><h4 className="fw-bold mb-0">Users <span className="badge badge-soft-primary fw-medium border py-1 px-2 border-primary fs-13 ms-1">
+                            Total Users : {data.length}
+                        </span></h4></div>
+
+                        {/* Filter Input */}
+                        <div className="me-2" style={{ minWidth: '220px' }}>
+                            <input
+                                type="search"
+                                className="form-control"
+                                placeholder="Filter by name, email..."
+                                value={searchText}
+                                onChange={e => setSearchText(e.target.value)}
+                            />
+                        </div>
+
                         <div className="text-end d-flex">
                             <Link href="#" className="btn btn-primary ms-2 fs-13 btn-md" data-bs-toggle="modal" data-bs-target="#add_user">
                                 <i className="ti ti-plus me-1" /> New User
@@ -480,7 +546,8 @@ const UsersComponent = () => {
                         </div>
                     </div>
                     <div className="table-responsive">
-                        <Datatable columns={columns} dataSource={data} Selection={false} searchText={""} />
+                        {/* 4. Use processedData for the dataSource */}
+                        <Datatable columns={columns} dataSource={processedData} Selection={false} searchText={searchText} />
                     </div>
                 </div>
             </div>
@@ -495,7 +562,7 @@ const UsersComponent = () => {
                         <form onSubmit={handleResetSubmit}>
                             <div className="modal-body">
                                 <div className="mb-3">
-                                    <label className="form-label">New Password</label>
+                                    <label className="form-label">New Password <span className="text-danger">*</span></label>
                                     <div className="input-group">
                                         <input type={resetShowPassword ? 'text' : 'password'} className="form-control" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
                                         <button type="button" className="btn btn-light border" onClick={() => setResetShowPassword(s => !s)} aria-label="Toggle password visibility">
@@ -504,7 +571,7 @@ const UsersComponent = () => {
                                     </div>
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label">Confirm Password</label>
+                                    <label className="form-label">Confirm Password <span className="text-danger">*</span></label>
                                     <div className="input-group">
                                         <input type={resetShowConfirm ? 'text' : 'password'} className="form-control" value={resetConfirm} onChange={e => setResetConfirm(e.target.value)} />
                                         <button type="button" className="btn btn-light border" onClick={() => setResetShowConfirm(s => !s)} aria-label="Toggle confirm password visibility">
@@ -515,7 +582,9 @@ const UsersComponent = () => {
                             </div>
                             <div className="modal-footer d-flex align-items-center gap-1">
                                 <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('reset_password'); } catch (_) { } }}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Set Password</button>
+                                <button type="submit" className="btn btn-primary" disabled={!isResetFormValid || isResetting}>
+                                    {isResetting ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Set Password'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -533,11 +602,11 @@ const UsersComponent = () => {
                         </div>
                         <form onSubmit={handleEditSubmit}>
                             <div className="modal-body">
-                                <div className="mb-3"><label className="form-label">Name</label><input className="form-control" value={editName} onChange={e => setEditName(e.target.value)} /></div>
-                                <div className="mb-3"><label className="form-label">Email</label><input className="form-control" value={editEmail} onChange={e => setEditEmail(e.target.value)} /></div>
+                                <div className="mb-3"><label className="form-label">Name <span className="text-danger">*</span></label><input className="form-control" value={editName} onChange={e => setEditName(e.target.value)} /></div>
+                                <div className="mb-3"><label className="form-label">Email <span className="text-danger">*</span></label><input className="form-control" value={editEmail} onChange={e => setEditEmail(e.target.value)} /></div>
                                 <div className="mb-0">
-                                    <label className="form-label">Role</label>
-                                    <select className="form-control" value={editRole} onChange={e => setEditRole(e.target.value)}>
+                                    <label className="form-label">Role <span className="text-danger">*</span></label>
+                                    <select className="form-select" value={editRole} onChange={e => setEditRole(e.target.value)}>
                                         <option value="">Select role</option>
                                         {roleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                     </select>
@@ -545,7 +614,9 @@ const UsersComponent = () => {
                             </div>
                             <div className="modal-footer d-flex align-items-center gap-1">
                                 <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('edit_user'); } catch (_) { } }}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Save</button>
+                                <button type="submit" className="btn btn-primary" disabled={!isEditFormValid || isEditing}>
+                                    {isEditing ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Save'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -561,11 +632,11 @@ const UsersComponent = () => {
                         </div>
                         <form onSubmit={handleAddUser}>
                             <div className="modal-body">
-                                <div className="mb-3"><label className="form-label">Name</label><input className="form-control" value={name} onChange={e => setName(e.target.value)} /></div>
-                                <div className="mb-3"><label className="form-label">Email</label><input className="form-control" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                                <div className="mb-3"><label className="form-label">Name <span className="text-danger">*</span></label><input className="form-control" value={name} onChange={e => setName(e.target.value)} /></div>
+                                <div className="mb-3"><label className="form-label">Email <span className="text-danger">*</span></label><input className="form-control" value={email} onChange={e => setEmail(e.target.value)} /></div>
                                 <div className="mb-3">
-                                    <label className="form-label">Role</label>
-                                    <select className="form-control" value={role} onChange={e => setRole(e.target.value)}>
+                                    <label className="form-label">Role <span className="text-danger">*</span></label>
+                                    <select className="form-select" value={role} onChange={e => setRole(e.target.value)}>
                                         <option value="">Select role</option>
                                         {roleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                     </select>
@@ -574,7 +645,9 @@ const UsersComponent = () => {
                             </div>
                             <div className="modal-footer d-flex align-items-center gap-1">
                                 <button type="button" className="btn btn-white border" data-bs-dismiss="modal" onClick={() => { try { hideModalById('add_user'); } catch (_) { } }}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Add New User</button>
+                                <button type="submit" className="btn btn-primary" disabled={!isAddFormValid || isAddingUser}>
+                                    {isAddingUser ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : 'Add New User'}
+                                </button>
                             </div>
                         </form>
                     </div>

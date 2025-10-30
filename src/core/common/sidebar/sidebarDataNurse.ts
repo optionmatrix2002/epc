@@ -31,7 +31,7 @@ export const NurseSidebarData = [
             },
             {
                 label: "Allocation",
-                link: "/nurse/allocation", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "directions", // Example icon
                 base: "allocation",
@@ -39,7 +39,7 @@ export const NurseSidebarData = [
             },
             {
                 label: "Availability",
-                link: "/nurse/availability", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "calendar-time",
                 base: "availability",
@@ -47,7 +47,7 @@ export const NurseSidebarData = [
             },
             {
                 label: "Profile",
-                link: routes.profile, // Or profilesettings
+                link: "#",
                 submenu: false,
                 icon: "user-circle",
                 base: "profile",
@@ -55,7 +55,7 @@ export const NurseSidebarData = [
             },
             {
                 label: "Services", // Specific nursing services
-                link: "/nurse/services", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "heart-rate-monitor", // Example icon
                 base: "services",
@@ -63,7 +63,7 @@ export const NurseSidebarData = [
             },
             {
                 label: "Patients", // Link to list or specific dashboard view
-                link: routes.patients, // Existing route, maybe filtered view
+                link: "#",
                 submenu: false,
                 icon: "user-heart",
                 base: "patients",
@@ -71,7 +71,7 @@ export const NurseSidebarData = [
             },
             {
                 label: "Billing",
-                link: routes.invoices, // Link to nurse-related billing/invoices
+                link: "#",
                 submenu: false,
                 icon: "file-invoice-dollar",
                 base: "billing",
@@ -79,7 +79,7 @@ export const NurseSidebarData = [
             },
             {
                 label: "Documents",
-                link: "/nurse/documents", // Placeholder
+                link: "#",
                 submenu: false,
                 icon: "file-stack",
                 base: "documents",
@@ -87,7 +87,7 @@ export const NurseSidebarData = [
             },
             {
                 label: "Messaging",
-                link: routes.chat, // Existing route
+                link: "#",
                 submenu: false,
                 icon: "message-dots",
                 base: "chat",
